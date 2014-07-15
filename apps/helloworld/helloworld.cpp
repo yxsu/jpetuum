@@ -30,7 +30,7 @@
  * author: jinlianw
  */
 
-#include <petuum_ps/include/petuum_ps.hpp>
+#include <petuum_ps_common/include/petuum_ps.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <pthread.h>
@@ -70,7 +70,7 @@ void StalenessTest(const ThreadContext &thread_context, int32_t thread_id) {
     = new petuum::Table<int>[thread_context.num_tables];
   int32_t table_id = 0;
   for (table_id = 0; table_id < thread_context.num_tables; ++table_id) {
-    tables[table_id] = petuum::TableGroup::GetTableOrDie<int>(table_id);
+    tables[table_id] = petuum::PSTableGroup::GetTableOrDie<int>(table_id);
     CHECK_EQ(tables[table_id].get_row_type(), 20);
     VLOG(0) << "row_type = " << tables[table_id].get_row_type();
   }
@@ -103,19 +103,19 @@ void StalenessTest(const ThreadContext &thread_context, int32_t thread_id) {
     }
 
     VLOG(0) << "Calling clock from thread " << thread_id;
-    petuum::TableGroup::Clock();
+    petuum::PSTableGroup::Clock();
   }
   delete[] tables;
 }
 
 void *WorkerThreadMain(void *argu) {
   ThreadContext *thread_context = reinterpret_cast<ThreadContext*>(argu);
-  int32_t thread_id = petuum::TableGroup::RegisterThread();
+  int32_t thread_id = petuum::PSTableGroup::RegisterThread();
   VLOG(0) << "Thread has registered, thread_id = " << thread_id;
 
   StalenessTest(*thread_context, thread_id);
 
-  petuum::TableGroup::DeregisterThread();
+  petuum::PSTableGroup::DeregisterThread();
   return 0;
 }
 
@@ -149,9 +149,9 @@ int main(int argc, char *argv[]) {
 
   VLOG(0) << "Helloworld starts here";
 
-  petuum::TableGroup::RegisterRow<petuum::DenseRow<int> >(20);
+  petuum::PSTableGroup::RegisterRow<petuum::DenseRow<int> >(20);
 
-  int32_t init_thread_id = petuum::TableGroup::Init(table_group_config, true);
+  int32_t init_thread_id = petuum::PSTableGroup::Init(table_group_config, true);
 
   VLOG(0) << "Initialized TableGroup, thread id = " << init_thread_id;
 
@@ -167,11 +167,11 @@ int main(int argc, char *argv[]) {
   int32_t table_id = 0;
   for (table_id = 0; table_id < FLAGS_num_tables; ++table_id) {
     VLOG(0) << "Create table_id = " << table_id;
-    bool suc = petuum::TableGroup::CreateTable(table_id, table_config);
+    bool suc = petuum::PSTableGroup::CreateTable(table_id, table_config);
     CHECK(suc);
   }
 
-  petuum::TableGroup::CreateTableDone();
+  petuum::PSTableGroup::CreateTableDone();
 
   int32_t num_worker_threads = FLAGS_num_app_threads - 1;
   pthread_t *threads = 0;
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  petuum::TableGroup::WaitThreadRegister();
+  petuum::PSTableGroup::WaitThreadRegister();
   StalenessTest(thread_context, init_thread_id);
 
   if (num_worker_threads > 0) {
@@ -205,6 +205,6 @@ int main(int argc, char *argv[]) {
   }
 
   delete[] threads;
-  petuum::TableGroup::ShutDown();
+  petuum::PSTableGroup::ShutDown();
   return 0;
 }
