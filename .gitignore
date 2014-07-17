@@ -39,3 +39,5 @@ tags
 # osx
 .DS_Store
 CMakeLists.txt.user
+#EA
+*.ldb
