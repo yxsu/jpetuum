@@ -6,7 +6,7 @@ third_party/include
 third_party/src
 third_party/share
 third_party/lib
-
+build/
 external_testbed/third_party/gflags-2.0/
 external_testbed/third_party/glog-0.3.3/
 external_testbed/third_party/libunwind-1.1/
@@ -38,3 +38,4 @@ tags
 
 # osx
 .DS_Store
+CMakeLists.txt.user
