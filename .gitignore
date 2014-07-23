@@ -41,3 +41,5 @@ tags
 CMakeLists.txt.user
 #EA
 *.ldb
+.idea/
+*.iml
