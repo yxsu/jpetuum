@@ -142,7 +142,7 @@ public class MatrixFact {
                         }
                         System.out.println("loss function = " + String.valueOf(loss));
                     }
-                    PSTableGroup. ();
+                    PSTableGroup.clock();
                 }
                 long end = System.currentTimeMillis();
                 if(globalWorkerId == 0) {
