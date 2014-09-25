@@ -34,7 +34,7 @@ public class MetricLearn {
     private static int numWorkerThreads = 1;
     private static int clientID = 0;
     private static int K = 2;
-    private static int numIterations = 10;
+    private static int numIterations = 54983;
     private static int staleness = 0;
     private static DenseMatrixLoader consMatrix;
     private static DenseMatrixLoader trainMatrix;
@@ -139,8 +139,9 @@ public class MetricLearn {
         }
 
     }
-    private static void bpRow(int globalWorkerId,
+    private static boolean bpRow(int globalWorkerId, int iter,
                               ClientTable tableA, ClientTable tableParam, ClientTable tableDistance){
+
         DenseMatrixLoader.Row consRow = consMatrix.getNextRow(globalWorkerId);
         Vector<Float> row = consRow.value;
         int rowNum = consRow.rowNum;
@@ -149,9 +150,9 @@ public class MetricLearn {
         float idx2 = row.get(1);
         int i1 = (int)idx1;
         int i2 = (int)idx2;
-        DenseRow lambda = (DenseRow)tableParam.get(0);
+        DenseRow lambda    = (DenseRow)tableParam.get(0);
         DenseRow lambdaold = (DenseRow)tableParam.get(1);
-        DenseRow bhat = (DenseRow)tableParam.get(2);
+        DenseRow bhat      = (DenseRow)tableParam.get(2);
 
         // v = (x_i1 - x_i2), O(dimData)
         Vector<Float> v = new Vector<Float>();
@@ -162,15 +163,16 @@ public class MetricLearn {
         float dij = 0.0f, wtw = 0.0f;
         for( int i = 0; i < globalBlock.rowSize; i++){
             DenseRow ai = (DenseRow)tableA.get(i+globalBlock.startRow);
-            float temp = 0;
+            float aiv = 0;
             for(int j = 0; j < globalBlock.columnSize; j++){
-                temp += ai.get(j+globalBlock.startColumn)*v.get(j+globalBlock.startColumn);
+                aiv += ai.get(j+globalBlock.startColumn) * v.get(j+globalBlock.startColumn);
             }
-            dij += v.get(i)*temp;
+            dij += v.get(i) * aiv;
         }
 
         DenseRow distRow = (DenseRow) tableDistance.get(rowNum);
-        distRow.applyInc(globalWorkerId, 2 * dij - distRow.get(globalWorkerId));
+        dij = globalBlock.isDiagonal? dij : dij*2;
+        distRow.applyInc(globalWorkerId, dij - distRow.get(globalWorkerId));
         for(int i = 0; i < getTotalNumWorker(); i++){
             wtw += distRow.get(i);
         }
@@ -235,6 +237,7 @@ public class MetricLearn {
 
         // test whether ITML converges
         double conv = 0.0f;
+        boolean flag = false;
         if (consRow.isLastRow){
             double normsum = 0, norm1 = 0, norm2 = 0, norm3 = 0;
             HashMap<Integer,Double> updateLambdaOld = new HashMap<Integer, Double>();
@@ -245,21 +248,28 @@ public class MetricLearn {
                 updateLambdaOld.put(i, lambda.get(i) - lambdaold.get(i));
             }
             normsum = Math.sqrt(norm1)+Math.sqrt(norm2);
+            System.out.format("norm sum = %.f\n",normsum);
             if(normsum == 0){
                 //break;
+                flag = true;
             }else{
                 conv = norm3 / normsum;
                 if(conv < threshITML){
                     //break;
+                    flag =  true;
                 }
             }
             tableParam.batchInc(1,updateLambdaOld); // lambdaOld = lambda
         }
         //output the convergence value
         if(globalWorkerId == 0){
-            System.out.println("Convergence: "+ conv);
-            // output testing accuracy of KNN -- JJ
+            if( iter %5 ==0) {
+                System.out.println("Iteration " + String.valueOf(iter + 1)+"/"+String.valueOf(numIterations)+"Convergence: " + conv);
+                //System.out.println();
+                // output testing accuracy of KNN -- JJ
+            }
         }
+        return flag;
     }
 
     public static class SolveITML implements Runnable {
@@ -275,8 +285,7 @@ public class MetricLearn {
 
                 //Initialize ITML solver
                 int globalWorkerId = getGlobalWorkerId(localThreadId);
-                globalBlock = new MetricLearnBlock(globalWorkerId);
-                double conv = Double.POSITIVE_INFINITY;
+
                 if(globalWorkerId == 0){
                     initITML(tableA, tableParam, tableDistance, globalWorkerId);
                 }
@@ -289,12 +298,9 @@ public class MetricLearn {
                 long start = System.currentTimeMillis();
                 //run ITML solver
                 for(int iter = 0; iter < numIterations; iter++){
-                    if(globalWorkerId == 0){
-                        System.out.println("Iteration " + String.valueOf(iter + 1)+"/"+String.valueOf(numIterations));
-                    }
 
                     // read the constrains and perform Bregman Projection
-                    bpRow(globalWorkerId, tableA, tableParam, tableDistance);
+                    bpRow(globalWorkerId, iter, tableA, tableParam, tableDistance);
                     PSTableGroup.clock();
                 }
                 long end = System.currentTimeMillis();
@@ -323,7 +329,7 @@ public class MetricLearn {
         tableGroupConfig.numTotalServerThreads = numClient;
         tableGroupConfig.numTotalBgThreads = numClient;
         tableGroupConfig.numTotalClients = numClient;
-        tableGroupConfig.numTables = 1;
+        tableGroupConfig.numTables = 3;
         tableGroupConfig.getHostInfos(hostFile);
         tableGroupConfig.consistencyModel = ConsistencyModel.SSP;
 
@@ -344,13 +350,14 @@ public class MetricLearn {
         dimData = trainMatrix.getM(); //get the dimension of samples
         numCons = consMatrix.getN();  //get the number of constrains
 
+
         //config ps table
         ClientTableConfig tableConfig = new ClientTableConfig();
         tableConfig.tableInfo.rowType = 0; //dense row
-        tableConfig.opLogCapacity = 100;
+        tableConfig.opLogCapacity = 300;
         tableConfig.tableInfo.tableStaleness = staleness;
         tableConfig.tableInfo.rowCapacity = dimData;  //dimension of the samples
-        tableConfig.processCacheCapacity = 100;
+        tableConfig.processCacheCapacity = 300;
         PSTableGroup.createTable(0, tableConfig);    //table for A
         tableConfig.tableInfo.rowCapacity = numCons;
         PSTableGroup.createTable(1,tableConfig);     //table for ITML parameters, e.g. lambda, lambdaold, bhat
@@ -361,6 +368,7 @@ public class MetricLearn {
         PSTableGroup.createTableDone();
 
         //get the configured list of blocks for all thread
+        blocks = new Vector<MetricLearnBlock>();
         for(int i = 0; i < getTotalNumWorker(); i++){
             blocks.add(i, new MetricLearnBlock(i));
         }
@@ -377,6 +385,7 @@ public class MetricLearn {
         for(int i = 0; i<numWorkerThreads; i++){
             threads.get(i).join();
         }
+
         //clean up
         PSTableGroup.shutDown();
     }

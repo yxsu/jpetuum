@@ -35,7 +35,7 @@ public class DenseMatrixLoader implements MatrixLoader {
     }
 
     private void readDenseMatrix(Path inputFile) throws IOException {
-        matrix.clear();
+        matrix = new Vector<Vector<Float>>();
         n_=0;
         m_=0;
         Files.lines(inputFile, StandardCharsets.US_ASCII).forEach(new Consumer<String>() {
