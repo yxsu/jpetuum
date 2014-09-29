@@ -119,20 +119,16 @@ public class MetricLearn {
             try {
                 PSTableGroup.registerThread();
                 //get table
-                ClientTable tableA = PSTableGroup.getTableOrDie(0);
-                ClientTable tableParam = PSTableGroup.getTableOrDie(1);
-                ClientTable tableDistance = PSTableGroup.getTableOrDie(2);
+                tableA = PSTableGroup.getTableOrDie(0);
+                tableParam = PSTableGroup.getTableOrDie(1);
+                tableDistance = PSTableGroup.getTableOrDie(2);
 
                 //Initialize ITML solver
                 int globalWorkerId = getGlobalWorkerId(localThreadId);
 
                 if(globalWorkerId == 0){
-                    initITML(tableA, tableParam, tableDistance, globalWorkerId);
+                    initITML(globalWorkerId);
                     System.out.format("After initial of A:\n");
-                    printA(tableA);
-                }
-                if(globalWorkerId ==1 ){
-                    System.out.format("The 1-th thread, A=:\n");
                     printA(tableA);
                 }
 
@@ -148,8 +144,8 @@ public class MetricLearn {
                         System.out.format("The %d-th of %d iteration :\n",iter,numIterations);
                     }
                     // read the constrains and perform Bregman Projection
-                    bpRow(globalWorkerId, iter, tableA, tableParam, tableDistance);
-                    pregetNextRow(globalWorkerId, tableA, tableDistance);
+                    bpRow(globalWorkerId, iter);
+                    pregetNextRow(globalWorkerId);
                     PSTableGroup.clock();
                     if(globalWorkerId == 0){
                         //printA(tableA);
@@ -172,8 +168,7 @@ public class MetricLearn {
             }
         }
 
-        private static void initITML(ClientTable tableA, ClientTable tableParam,
-                                     ClientTable tableDistance, int globalWorkerId){
+        private static void initITML(int globalWorkerId){
             // initial A
             for(int i = 0; i < dimData; i++){
                 Map<Integer,Double> updateA = new HashMap<Integer,Double>();
@@ -225,9 +220,7 @@ public class MetricLearn {
                 tableDistance.batchInc(i,updateConsDistance);   // tableDistance: numCons x getTotalNumWorker() matrix
             }
         }
-        private static boolean bpRow(int globalWorkerId, int iter,
-                                     ClientTable tableA, ClientTable tableParam, ClientTable tableDistance){
-
+        private static boolean bpRow(int globalWorkerId, int iter){
             DenseMatrixLoader.Row consRow = consMatrix.getNextRow(globalWorkerId);
             Vector<Float> row = consRow.value;
             int rowNum = consRow.rowNum;
@@ -339,7 +332,7 @@ public class MetricLearn {
 
             return flag;
         }
-        private static void pregetNextRow(int globalWorkerId, ClientTable tableA, ClientTable tableDistance){
+        private static void pregetNextRow(int globalWorkerId){
             DenseMatrixLoader.Row consRow = consMatrix.pregetNextRow(globalWorkerId);
             float idx1 = consRow.value.get(0);
             float idx2 = consRow.value.get(1);
@@ -369,6 +362,9 @@ public class MetricLearn {
 
         private int localThreadId;
         private MetricLearnBlock globalBlock;
+        private static ClientTable tableA;
+        private static ClientTable tableParam;
+        private static ClientTable tableDistance;
     }
 
     public static void main(String[] args) throws Exception{
@@ -443,5 +439,4 @@ public class MetricLearn {
         //clean up
         PSTableGroup.shutDown();
     }
-
 }
