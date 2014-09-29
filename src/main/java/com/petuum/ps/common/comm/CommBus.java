@@ -1,14 +1,17 @@
 package com.petuum.ps.common.comm;
 
 import com.google.common.base.Preconditions;
-import com.petuum.ps.common.NumberedMsg;
 import com.petuum.ps.common.util.IntBox;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
-
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.Vector;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by admin on 2014/8/11.
@@ -129,6 +132,7 @@ public class CommBus {
         threadInfo.get().numBytesInterprocRecvBuff = config.numBytesInterprocRecvBuff;
 
         if((config.lType & K_IN_PROC) != 0){
+            threadInfo.get().inprocQueue = new SynchronousQueue<Map.Entry<Integer, ByteBuffer>>(true);
 
             threadInfo.get().inprocSock = zmqContext.createSocket(ZMQ.ROUTER);
             ZMQ.Socket sock = threadInfo.get().inprocSock;
