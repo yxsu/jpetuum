@@ -29,7 +29,7 @@ public class MatrixFact {
     private static double stepSizePow = 0.5;
     private static int rngSeed = 967234;
     private static int numClient = 1;
-    private static int numWorkerThreads = 1;
+    private static int numWorkerThreads = 3;
     private static int clientID = 0;
     private static int K = 2;
     private static int numIterations = 10;
@@ -194,6 +194,7 @@ public class MatrixFact {
         tableConfig.processCacheCapacity = 100;
         PSTableGroup.createTable(0, tableConfig);
         PSTableGroup.createTable(1, tableConfig);
+        tableConfig.tableInfo.rowCapacity = getTotalNumWorker();
         PSTableGroup.createTable(2, tableConfig);
 
         //finished creating tables
