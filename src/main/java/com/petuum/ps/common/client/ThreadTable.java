@@ -9,6 +9,7 @@ import com.petuum.ps.thread.GlobalContext;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * @author Yuxin Su
@@ -17,16 +18,16 @@ import java.util.*;
  */
 public class ThreadTable {
 
-	private Vector<Set<Integer>> opLogIndex;
+	private Vector<ConcurrentSkipListSet<Integer>> opLogIndex;
     private Map<Integer, RowOpLog> opLogMap;
 	private Map<Integer, Row> rowStorage;
 	private Row sampleRow;
 
 	public ThreadTable(Row sampleRow){
         this.sampleRow = sampleRow;
-        opLogIndex = new Vector<Set<Integer>>();
+        opLogIndex = new Vector<ConcurrentSkipListSet<Integer>>();
         for(int i = 0; i < GlobalContext.getNumBgThreads(); i++){
-            opLogIndex.add(new HashSet<Integer>());
+            opLogIndex.add(new ConcurrentSkipListSet<Integer>());
         }
         rowStorage = new HashMap<Integer, Row>();
         opLogMap = new HashMap<Integer, RowOpLog>();

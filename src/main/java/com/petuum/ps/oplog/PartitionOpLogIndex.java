@@ -5,6 +5,7 @@ import com.petuum.ps.thread.GlobalContext;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -26,8 +27,10 @@ public class PartitionOpLogIndex {
     public void addIndex(Set<Integer> opLogIndex){
         try {
             sharedLock.readLock().lock();
-
-            for (int index : opLogIndex) {
+       
+            Iterator<Integer> iter = opLogIndex.iterator();
+            while(iter.hasNext()){
+                int index = iter.next();
                 Lock lock = locks.get(index);
                 try {
                     lock.lock();
@@ -36,6 +39,8 @@ public class PartitionOpLogIndex {
                     lock.unlock();
                 }
             }
+        }catch (Exception e) {
+            e.printStackTrace();
         }finally {
             sharedLock.readLock().unlock();
         }

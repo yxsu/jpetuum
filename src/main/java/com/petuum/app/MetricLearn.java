@@ -22,7 +22,7 @@ import java.util.concurrent.BrokenBarrierException;
 public class MetricLearn {
     private static Path hostFile = FileSystems.getDefault().getPath("machines", "localserver");
     private static Path trainFile = FileSystems.getDefault().getPath("dataset", "iris.txt");
-    private static Path testFile = FileSystems.getDefault().getPath("dataset", "synthetics100_0_of_10_test.dat");
+   // private static Path testFile = FileSystems.getDefault().getPath("dataset", "synthetics100_0_of_10_test.dat");
     private static Path consFile = FileSystems.getDefault().getPath("dataset","C.txt");
     private static Path outputPrefix = FileSystems.getDefault().getPath("test");
     private static double lambda = 0.0;
@@ -319,7 +319,7 @@ public class MetricLearn {
                         //break;
                         flag =  true;
                     }
-                }
+                 }
                 tableParam.batchInc(1,updateLambdaOld); // lambdaOld = lambda
             }
 
@@ -398,7 +398,7 @@ public class MetricLearn {
 
         // load data
         trainMatrix = new DenseMatrixLoader(trainFile, getTotalNumWorker());
-        testMatrix = new DenseMatrixLoader(testFile, getTotalNumWorker());
+       // testMatrix = new DenseMatrixLoader(testFile, getTotalNumWorker());
         consMatrix = new DenseMatrixLoader(consFile,getTotalNumWorker());
         dimData = trainMatrix.getM(); //get the dimension of samples
         numCons = consMatrix.getN();  //get the number of constrains

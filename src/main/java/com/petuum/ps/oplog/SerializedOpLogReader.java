@@ -49,7 +49,7 @@ public class SerializedOpLogReader {
         if(numTableLeft == 0)   return null;
         startedNewTable.boolValue = false;
         int updateSize = 0;
-        HashMap<Integer, Double> updates;
+        HashMap<Integer, Double> updates = null;
         while(true){
             // can read from current row
             if(numRowsLeftInCurrentTable > 0){
@@ -58,7 +58,11 @@ public class SerializedOpLogReader {
                 updateSize = serializedOpLogBuf.getInt();
                 byte[] rowOpLogBytes = new byte[updateSize];
                 serializedOpLogBuf.get(rowOpLogBytes, 0, updateSize);
-                updates = (HashMap<Integer, Double>) SerializationUtils.deserialize(rowOpLogBytes);
+                try {
+                    updates = (HashMap<Integer, Double>) SerializationUtils.deserialize(rowOpLogBytes);
+                }catch(Exception e) {
+                    return null;
+                }
                 numRowsLeftInCurrentTable--;
                 return updates;
             }else{
