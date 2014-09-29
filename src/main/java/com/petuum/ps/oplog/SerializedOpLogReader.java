@@ -50,7 +50,7 @@ public class SerializedOpLogReader {
         startedNewTable.boolValue = false;
         int updateSize = 0;
         HashMap<Integer, Double> updates;
-        while(true){ 
+        while(true){
             // can read from current row
             if(numRowsLeftInCurrentTable > 0){
                 tableId.intValue = currentTableId;
