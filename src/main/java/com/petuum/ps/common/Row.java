@@ -55,6 +55,14 @@ public abstract interface Row extends Serializable{
 	 */
 	public abstract void applyIncUnsafe(int column_id, final Double update);
 
+    public abstract int getLength();
+
+    public abstract Row getSegment(int start, int offset);
+
+    public abstract int getStart();
+
+    public abstract int getOffset();
+
 	public abstract int getUpdateSize();
 
 	/**

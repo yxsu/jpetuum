@@ -16,6 +16,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class DenseRow implements Row {
 
     private AtomicDoubleArray rowData;
+    private int start;
+    private int offset;
+
+    public DenseRow() {
+        
+    }
+    public DenseRow(AtomicDoubleArray rowData, int start, int offset) {
+        this.rowData = rowData;
+        this.start = start;
+        this.offset = offset;
+    }
 
     public Double addUpdates(int column_id, Double update1, Double update2) {
         return update1 + update2;
@@ -31,6 +42,26 @@ public class DenseRow implements Row {
         for(Map.Entry<Integer, Double> entry : update_batch.entrySet()) {
             rowData.getAndAdd(entry.getKey(), entry.getValue());
         }
+    }
+
+    public int getLength() {
+        return rowData.length();
+    }
+
+    public Row getSegment(int start, int offset) {
+        AtomicDoubleArray segmentData = new AtomicDoubleArray(offset);
+        for(int i = 0; i < offset; i++) {
+            segmentData.set(i, rowData.get(i + start));
+        }
+        return new DenseRow(segmentData, start, offset);
+    }
+
+    public int getStart() {
+        return start;
+    }
+
+    public int getOffset() {
+        return offset;
     }
 
     public void applyInc(int column_id, Double update) {

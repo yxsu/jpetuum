@@ -320,16 +320,18 @@ public class ServerThreads {
     private static void handleRowRequest(int senderId, RowRequestMsg rowRequestMsg) throws InvocationTargetException, IllegalAccessException {
         int tableId = rowRequestMsg.getTableId();
         int rowId = rowRequestMsg.getRowId();
+        int start = rowRequestMsg.getStart();
+        int offset = rowRequestMsg.getOffset();
         int clock = rowRequestMsg.getClock();
         int serverClock = serverContext.get().serverObj.getMinClock();
         if(serverClock < clock) {
-            serverContext.get().serverObj.addRowRequest(senderId, tableId, rowId, clock);
+            serverContext.get().serverObj.addRowRequest(senderId, tableId, rowId, start, offset, clock);
             return;
         }
 
         int version = serverContext.get().serverObj.getBgVersion(senderId);
 
-        ServerRow serverRow = serverContext.get().serverObj.findCreateRow(tableId, rowId);
+        ServerRow serverRow = serverContext.get().serverObj.findCreateRow(tableId, rowId, start, offset);
         rowSubscribe.invoke(ServerThreads.class, serverRow, GlobalContext.threadId2ClientId(senderId));
         replyRowRequest(senderId, serverRow, tableId, rowId, serverClock, version);
     }
@@ -369,9 +371,11 @@ public class ServerThreads {
                 for(ServerRowRequest request : requests) {
                     int tableId = request.tableId;
                     int rowId = request.rowId;
+                    int columnId = request.columnId;
+                    int offset = request.offset;
                     int bgId = request.bgId;
                     int version2 = serverContext.get().serverObj.getBgVersion(bgId);
-                    ServerRow serverRow = serverContext.get().serverObj.findCreateRow(tableId, rowId);
+                    ServerRow serverRow = serverContext.get().serverObj.findCreateRow(tableId, rowId, columnId, offset);
                     rowSubscribe.invoke(ServerThreads.class, serverRow, GlobalContext.threadId2ClientId(bgId));
                     int serverClock = serverContext.get().serverObj.getMinClock();
                     replyRowRequest(bgId, serverRow, tableId, rowId, serverClock, version2);

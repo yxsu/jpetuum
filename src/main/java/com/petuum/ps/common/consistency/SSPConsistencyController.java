@@ -112,6 +112,27 @@ public class SSPConsistencyController extends ConsistencyController {
         return clientRow;
     }
 
+    public ClientRow get(int rowId, int start, int offset, boolean fetchFromServer) {
+        int stalestClock = ThreadContext.getClock() - staleness;
+        ClientRow clientRow = processStorage.getIfPresent(rowId);
+        if (clientRow != null){
+            Row rowData = clientRow.getRowData();
+            //found it! Check staleness
+            int clock = clientRow.getClock();
+            if (clock >= stalestClock && rowData.getStart() == start && rowData.getOffset() == offset){
+                return clientRow;
+            }
+            processStorage.invalidate(rowId);
+        }
+        if(fetchFromServer == false) return clientRow;
+
+        do {
+            BgWorkers.requestSubRow(tableId, rowId, start, offset, stalestClock);
+            clientRow = processStorage.getIfPresent(rowId);
+        }while(clientRow == null);
+        Preconditions.checkArgument(clientRow.getClock() >= stalestClock);
+        return clientRow;
+    }
 
 	/**
 	 * 
