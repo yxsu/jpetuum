@@ -1,7 +1,6 @@
 package com.petuum.ps.thread;
 
 import com.petuum.ps.common.NumberedMsg;
-import zmq.Msg;
 
 import java.nio.ByteBuffer;
 

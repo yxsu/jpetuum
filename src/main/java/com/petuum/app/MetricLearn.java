@@ -288,10 +288,10 @@ public class MetricLearn {
                 t1.add(i, aiv);
             }
             // Update the corresponding globalBlock of A: A = A + beta t1 * t2
-            for( int i = 0; i < globalBlock.rowSize; i++){
+            for( int i = globalBlock.startRow; i < globalBlock.startRow + globalBlock.rowSize; i++){
                 Map<Integer,Double> updateAi = new HashMap<Integer, Double>();
                 for( int j = 0; j< globalBlock.columnSize; j++ ){
-                    updateAi.put( j + globalBlock.startColumn, beta * t1.get(i) * t2.get(j));
+                    updateAi.put( j + globalBlock.startColumn, beta * t1.get(i - globalBlock.startRow) * t2.get(j));
                 }
                 tableA.batchInc(i,updateAi);
             }
@@ -328,6 +328,9 @@ public class MetricLearn {
                 System.out.format("beta = %.5f\n",beta);
                 System.out.format("BP Row: %d-th row\n",consRow.rowNum);
                 printA(tableA);
+                if(iter==74) {
+                    int a =1;
+                }
             }
 
             return flag;

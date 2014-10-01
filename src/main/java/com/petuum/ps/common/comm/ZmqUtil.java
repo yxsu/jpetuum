@@ -1,10 +1,8 @@
 package com.petuum.ps.common.comm;
 
-import com.google.common.base.Preconditions;
 import com.petuum.ps.common.util.IntBox;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
-import zmq.Msg;
 
 import java.nio.ByteBuffer;
 
