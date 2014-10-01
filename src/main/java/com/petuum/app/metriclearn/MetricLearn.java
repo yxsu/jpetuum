@@ -1,4 +1,4 @@
-package com.petuum.app;
+package com.petuum.app.metriclearn;
 
 import com.petuum.ps.common.ClientTableConfig;
 import com.petuum.ps.common.PSTableGroup;
@@ -70,46 +70,6 @@ public class MetricLearn {
             System.out.format("\n");
         }
         System.out.println("END of Print\n");
-    }
-    private static class MetricLearnBlock{
-        MetricLearnBlock(int globalWorkerId){
-            // mapping from globalWorkerId to block indexs
-            int threadId = globalWorkerId+1;
-            for(int i = 0; i < numBlockInRow; i++){
-                if(threadId <= numBlockInRow - i ){
-                    blockRowIndexi = i;
-                    blockColumnIndexj = i + threadId - 1;
-                    break;
-                }else {
-                    threadId -= (numBlockInRow - i);
-                }
-            }
-            int remainder = dimData % numBlockInRow;
-            int dimBlock = dimData / numBlockInRow;
-            dimBlock = (remainder == 0)? dimBlock : dimBlock+1;
-            isDiagonal = (blockRowIndexi == blockColumnIndexj);
-            rowSize = (blockRowIndexi == numBlockInRow -1)? dimData - (numBlockInRow - 1) * dimBlock : dimBlock;
-            columnSize = (blockColumnIndexj == numBlockInRow -1)? dimData - (numBlockInRow - 1) * dimBlock : dimBlock;
-            startRow = blockRowIndexi * dimBlock;
-            startColumn = blockColumnIndexj * dimBlock;
-        }
-        public String toString(){
-            String s = "isDiagonal: "+(isDiagonal?"true\n":"false\n");
-            s += "block index i : "+blockRowIndexi+"\n";
-            s += "block col index j : " +blockColumnIndexj + "\n";
-            s += "row size :" + rowSize+ "\n";
-            s += "column size:" + columnSize+ "\n";
-            s += "start row:" + startRow+ "\n";
-            s += "start column:" + startColumn+ "\n";
-            return s;
-        }
-        public boolean isDiagonal;
-        public int blockRowIndexi;
-        public int blockColumnIndexj;
-        public int rowSize;
-        public int columnSize;
-        public int startRow;
-        public int startColumn;
     }
 
     public static class SolveITML implements Runnable {
@@ -271,10 +231,15 @@ public class MetricLearn {
             // t2 = (A * v) [ globalBlock.startColumn : globalBlock.startColumn + globalBlock.columnSize -1 ]
             Vector<Float> t1 = new Vector<Float>();
             Vector<Float> t2 = new Vector<Float>();
+            //float [] t2 = new float [globalBlock.columnSize];
+            for( int j = 0; j < dimData; j++){
+                DenseRow aj = (DenseRow)tableA.get(j);
+            }
             for( int i = 0; i < globalBlock.columnSize; i++){
-                DenseRow ai = (DenseRow)tableA.get(i + globalBlock.startColumn);
+                //DenseRow ai = (DenseRow)tableA.get(i + globalBlock.startColumn);
                 float aiv = 0.0f;
                 for( int j = 0; j < dimData; j++){
+                    DenseRow ai = (DenseRow)tableA.get(i + globalBlock.startColumn);
                     aiv += ai.get(j)*v.get(j);
                 }
                 t2.add(i,aiv);
@@ -293,7 +258,7 @@ public class MetricLearn {
                 for( int j = 0; j< globalBlock.columnSize; j++ ){
                     updateAi.put( j + globalBlock.startColumn, beta * t1.get(i) * t2.get(j));
                 }
-                tableA.batchInc(i,updateAi);
+                tableA.batchInc(i + globalBlock.startRow ,updateAi);
             }
 
             // test whether ITML converges
@@ -420,7 +385,7 @@ public class MetricLearn {
         //get the configured list of blocks for all thread
         blocks = new Vector<MetricLearnBlock>();
         for(int i = 0; i < getTotalNumWorker(); i++){
-            blocks.add(i, new MetricLearnBlock(i));
+            blocks.add(i, new MetricLearnBlock(i,numBlockInRow,dimData));
         }
 
         //run threads

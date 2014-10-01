@@ -19,7 +19,7 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
-mainClassName = "com.petuum.app.MatrixFact"
+mainClassName = "com.petuum.app.metriclearn.MetricLearn"
 
 task copyJars(type: Copy) {
     from configurations.runtime

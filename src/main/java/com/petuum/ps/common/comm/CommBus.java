@@ -132,7 +132,7 @@ public class CommBus {
         threadInfo.get().numBytesInterprocRecvBuff = config.numBytesInterprocRecvBuff;
 
         if((config.lType & K_IN_PROC) != 0){
-            threadInfo.get().inprocQueue = new SynchronousQueue<Map.Entry<Integer, ByteBuffer>>(true);
+            // threadInfo.get().inprocQueue = new SynchronousQueue<Map.Entry<Integer, ByteBuffer>>(true);
 
             threadInfo.get().inprocSock = zmqContext.createSocket(ZMQ.ROUTER);
             ZMQ.Socket sock = threadInfo.get().inprocSock;
