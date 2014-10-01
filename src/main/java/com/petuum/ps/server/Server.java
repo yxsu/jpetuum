@@ -86,11 +86,15 @@ public class Server {
                     serverId, tableId, GlobalContext.getResumeClock());
         }
     }
-    public ServerRow findCreateRow(int tableId, int rowId){
+    public ServerRow findCreateRow(int tableId, int rowId, int start, int offset){
         ServerTable serverTable = checkNotNull(tables.get(tableId));
         ServerRow serverRow = serverTable.findRow(rowId);
         if(serverRow != null){
-            return serverRow;
+            if(offset == 0) {
+                return serverRow;
+            }else {
+                return serverRow.getSegment(start, offset);
+            }
         }
         serverRow = serverTable.createRow(rowId);
         return serverRow;
@@ -115,11 +119,13 @@ public class Server {
         return false;
     }
 
-    public void addRowRequest(int bgId, int tableId, int rowId, int clock){
+    public void addRowRequest(int bgId, int tableId, int rowId, int start, int offset, int clock){
         ServerRowRequest serverRowRequest = new ServerRowRequest();
         serverRowRequest.bgId  = bgId;
         serverRowRequest.tableId = tableId;
         serverRowRequest.rowId = rowId;
+        serverRowRequest.columnId = start;
+        serverRowRequest.offset = offset;
         serverRowRequest.clock = clock;
 
         if( clockBgRowReqeusts.containsKey(clock) == false){
@@ -320,5 +326,7 @@ class ServerRowRequest {
     public int bgId;
     public int tableId;
     public int rowId;
+    public int columnId;
+    public int offset;
     public int clock;
 }

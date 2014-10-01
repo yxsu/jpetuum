@@ -91,6 +91,10 @@ public class ClientTable {
         return consistencyController.get(rowId, true).getRowData();
     }
 
+    public Row get(int rowId, int start, int offset) {
+        return consistencyController.get(rowId, start, offset, true).getRowData();
+    }
+
     public ClientRow getLocally(int rowId){
         return consistencyController.get(rowId, false);
     }

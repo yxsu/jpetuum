@@ -294,6 +294,23 @@ public class BgWorkers {
         return  true;
     }
 
+    public static boolean requestSubRow(int tableId, int rowId, int start, int offset, int clock) {
+        RowRequestMsg requestRowMsg = new RowRequestMsg(null);
+        requestRowMsg.setTableId(tableId);
+        requestRowMsg.setRowId(rowId);
+        requestRowMsg.setStart(start);
+        requestRowMsg.setOffset(offset);
+        requestRowMsg.setClock(clock);
+
+        int bgId = GlobalContext.getBgPartitionNum(rowId) + idStart;
+        commBus.sendInproc(bgId, requestRowMsg.getByteBuffer());
+        IntBox sendId = new IntBox();
+        ByteBuffer buffer = (ByteBuffer)commBus.recvInproc(sendId);
+        int msgType = new NumberedMsg(buffer).getMsgType();
+        Preconditions.checkArgument(msgType == NumberedMsg.K_ROW_REQUEST_REPLY);
+        return  true;
+    }
+
     public static void requestRowAsync(int tableId, int rowId, int clock){
         RowRequestMsg requestRowMsg = new RowRequestMsg(null);
         requestRowMsg.setTableId(tableId);

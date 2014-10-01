@@ -62,6 +62,14 @@ public class ServerRow {
         dirty = false;
     }
 
+    public ServerRow getSegment(int start, int offset) {
+        ServerRow subRow = new ServerRow(this.dirty);
+        subRow.numClientsSubscribed = this.numClientsSubscribed;
+        subRow.callBackSubs = this.callBackSubs;
+        subRow.rowData = this.rowData.getSegment(start, offset);
+        return subRow;
+    }
+
     public ByteBuffer serialize() {
         return ByteBuffer.wrap(SerializationUtils.serialize(rowData));
     }

@@ -39,8 +39,8 @@ public class MatrixFact {
     private static void sgdElement(int i , int j, float xij, double stepSize, int globalWorkerId,
                             ClientTable tableL, ClientTable tableR, ClientTable tableLoss) {
         //read L(i, :) and R(:, j) from Petuum PS
-        DenseRow li = (DenseRow)tableL.get(i);
-        DenseRow rj = (DenseRow)tableR.get(j);
+        DenseRow li = (DenseRow)tableL.get(i, 0, K);
+        DenseRow rj = (DenseRow)tableR.get(j, 0, K);
         //compute L(i, : ) * R(:, j)
         float liRj = 0;
         for(int k = 0; k < K; k++) {

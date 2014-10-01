@@ -3,10 +3,13 @@ package com.petuum.ps.common.storage;
 import com.petuum.ps.common.Row;
 import org.apache.commons.lang3.SerializationUtils;
 
+import javax.swing.text.html.parser.Entity;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -20,12 +23,18 @@ public class SparseRow implements Row, Iterable<Map.Entry<Integer, Double>> {
 
 //    private int updateSize;
 
-    Map<Integer, Double> rowData;
+    ConcurrentMap<Integer, Double> rowData;
+    private int start;
+    private int offset;
 
     public SparseRow() {
         this.lock = new ReentrantReadWriteLock();
 //        this.updateSize = SerializationUtils.serialize(sampleElem).length;
-        this.rowData = new HashMap<Integer, Double>();
+        this.rowData = new ConcurrentHashMap<Integer, Double>();
+    }
+
+    public int getLength() {
+        return rowData.size();
     }
 
     public Double get(int columnId){
@@ -37,6 +46,24 @@ public class SparseRow implements Row, Iterable<Map.Entry<Integer, Double>> {
         }
     }
 
+    public Row getSegment(int start, int offset) {
+        SparseRow subRow = new SparseRow();
+        subRow.start = this.start;
+        subRow.offset = this.offset;
+        int end = start + offset;
+        try {
+            lock.readLock().lock();
+            for(Map.Entry<Integer, Double> entry : rowData.entrySet()) {
+                if(entry.getKey() >= start && entry.getKey() < end) {
+                    subRow.applyInc(entry.getKey(), entry.getValue());
+                }
+            }
+        }finally {
+            lock.readLock().unlock();
+        }
+        return subRow;
+    }
+
     public int numEntries(){
         try{
             lock.readLock().lock();
@@ -44,6 +71,14 @@ public class SparseRow implements Row, Iterable<Map.Entry<Integer, Double>> {
         }finally {
             lock.readLock().unlock();
         }
+    }
+
+    public int getStart() {
+        return start;
+    }
+
+    public int getOffset() {
+        return offset;
     }
 
     public Double addUpdates(int column_id, Double update1, Double update2) {
