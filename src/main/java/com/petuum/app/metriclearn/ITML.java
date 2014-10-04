@@ -19,10 +19,10 @@ import java.util.concurrent.BrokenBarrierException;
 /**
  * Created by JunjieHu on 9/10/14.
  */
-public class MetricLearn {
+public class ITML {
     private static Path hostFile = FileSystems.getDefault().getPath("machines", "localserver");
     private static Path trainFile = FileSystems.getDefault().getPath("dataset", "iris.txt");
-   // private static Path testFile = FileSystems.getDefault().getPath("dataset", "synthetics100_0_of_10_test.dat");
+    // private static Path testFile = FileSystems.getDefault().getPath("dataset", "synthetics100_0_of_10_test.dat");
     private static Path consFile = FileSystems.getDefault().getPath("dataset","C.txt");
     private static Path outputPrefix = FileSystems.getDefault().getPath("test");
     private static double lambda = 0.0;
@@ -41,6 +41,7 @@ public class MetricLearn {
     private static DenseMatrixLoader trainMatrix;
     private static DenseMatrixLoader testMatrix;
     private static Vector<MetricLearnBlock> blocks;
+    private static int maxSizeBlock;
 
     // parameters for ITML
     private static int dimData;
@@ -73,7 +74,7 @@ public class MetricLearn {
 
     public static void main(String[] args) throws Exception{
         //set the number of workers for each client
-        numBlockInRow = 1;
+        numBlockInRow = 2;
         numTotalWorker = (numBlockInRow+1)*numBlockInRow/2;
 
         int temp = numTotalWorker / numClient;
@@ -104,32 +105,39 @@ public class MetricLearn {
 
         // load data
         trainMatrix = new DenseMatrixLoader(trainFile, getTotalNumWorker());
-       // testMatrix = new DenseMatrixLoader(testFile, getTotalNumWorker());
+        // testMatrix = new DenseMatrixLoader(testFile, getTotalNumWorker());
         consMatrix = new DenseMatrixLoader(consFile,getTotalNumWorker());
         dimData = trainMatrix.getM(); //get the dimension of samples
         numCons = consMatrix.getN();  //get the number of constrains
+
+        //get the configured list of blocks for all thread
+        blocks = new Vector<MetricLearnBlock>();
+        for(int i = 0; i < numBlockInRow; i++){
+            for(int j = 0; j < numBlockInRow; j++){
+                blocks.add( i*numBlockInRow+j, new MetricLearnBlock(i,j,dimData,numBlockInRow));
+            }
+        }
+        maxSizeBlock = blocks.get(0).rowSize * blocks.get(0).columnSize;
+        /*
+        blocks = new Vector<MetricLearnBlock>();
+        for(int i = 0; i < getTotalNumWorker(); i++){
+            blocks.add(i, new MetricLearnBlock(i,numBlockInRow,dimData));
+        }*/
 
         //config ps table
         ClientTableConfig tableConfig = new ClientTableConfig();
         tableConfig.tableInfo.rowType = 0; //dense row
         tableConfig.opLogCapacity = 300;
         tableConfig.tableInfo.tableStaleness = staleness;
-        tableConfig.tableInfo.rowCapacity = dimData;  //dimension of the samples
+        tableConfig.tableInfo.rowCapacity = maxSizeBlock;  //dimension of the samples
         tableConfig.processCacheCapacity = 300;
-        PSTableGroup.createTable(0, tableConfig);    //table for A
+        PSTableGroup.createTable(0, tableConfig);    //table for A: numTotalWorker x maxSizeBlock matrix
         tableConfig.tableInfo.rowCapacity = numCons;
         PSTableGroup.createTable(1,tableConfig);     //table for ITML parameters, e.g. lambda, lambdaold, bhat
         tableConfig.tableInfo.rowCapacity = getTotalNumWorker();
         PSTableGroup.createTable(2,tableConfig);     //table for distances of each pair in each constraint
         PSTableGroup.createTableDone();  //finished creating tables
 
-        //get the configured list of blocks for all thread
-        blocks = new Vector<MetricLearnBlock>();
-        /*
-        for(int i = 0; i < getTotalNumWorker(); i++){
-            blocks.add(i, new MetricLearnBlock(i,numBlockInRow,dimData));
-        }
-*/
         //run threads
         Vector<Thread> threads = new Vector<Thread>();
         for(int i = 0; i < numWorkerThreads.get(clientID); i++){

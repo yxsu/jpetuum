@@ -88,7 +88,7 @@ public class ClientTable {
 	 * @param rowId
 	 */
 	public Row get(int rowId){
-        return consistencyController.get(rowId, true).getRowData();
+        return consistencyController.threadGet(rowId);
     }
 
     public Row get(int rowId, int start, int offset) {
