@@ -28,7 +28,7 @@ public class SSPConsistencyController extends ConsistencyController {
 	 * SSP staleness parameter.
 	 */
 	protected int staleness;
-	protected ThreadTable threadCache;
+	protected ThreadLocal<ThreadTable> threadCache;
     /**
      * Controller will only write to oplog_ but never read from it, as
      * all local updates are reflected in the row values.
@@ -47,7 +47,7 @@ public class SSPConsistencyController extends ConsistencyController {
 	 * @param threadCache
 	 */
 	public SSPConsistencyController(TableInfo info, int tableId, final Row sampleRow, ThreadTable threadCache, int cacheSize){
-        this.threadCache = threadCache;
+        this.threadCache.set(threadCache);
         this.sampleRow = sampleRow;
         this.sampleRow.init(info.rowCapacity);
         this.tableId = tableId;
@@ -63,7 +63,7 @@ public class SSPConsistencyController extends ConsistencyController {
 	 * @param updates
 	 */
 	public void batchInc(int rowId, Map<Integer, Double> updates){
-        threadCache.indexUpdate(rowId);
+        threadCache.get().indexUpdate(rowId);
         RowOpLog rowOpLog = opLog.findInsertOpLog(rowId);
         for (Map.Entry<Integer, Double> entry : updates.entrySet()){
             Double opLogDelta = rowOpLog.findCreate(entry.getKey(), sampleRow);
@@ -79,12 +79,12 @@ public class SSPConsistencyController extends ConsistencyController {
 
 	public void clock(){
         // order is important
-        threadCache.flushCache(processStorage, opLog, sampleRow);
-        threadCache.flushOpLogIndex(opLogIndex);
+        threadCache.get().flushCache(processStorage, opLog, sampleRow);
+        threadCache.get().flushOpLogIndex(opLogIndex);
     }
 
 	public void flushThreadCache(){
-        threadCache.flushCache(processStorage, opLog, sampleRow);
+        threadCache.get().flushCache(processStorage, opLog, sampleRow);
     }
 
 	/**
@@ -149,7 +149,7 @@ public class SSPConsistencyController extends ConsistencyController {
 	 * @param delta
 	 */
 	public void inc(int rowId, int columnId, Double delta) {
-        threadCache.indexUpdate(rowId);
+        threadCache.get().indexUpdate(rowId);
         RowOpLog rowOpLog = opLog.findInsertOpLog(rowId);
         Double opLogDelta = rowOpLog.findCreate(columnId, sampleRow);
         opLogDelta = sampleRow.addUpdates(columnId, opLogDelta, delta);
@@ -167,7 +167,7 @@ public class SSPConsistencyController extends ConsistencyController {
 	 * @param updates
 	 */
 	public void threadBatchInc(int rowId, Map<Integer, Double> updates){
-        threadCache.batchInc(rowId, updates);
+        threadCache.get().batchInc(rowId, updates);
     }
 
 	/**
@@ -175,7 +175,7 @@ public class SSPConsistencyController extends ConsistencyController {
 	 * @param rowId
 	 */
 	public Row threadGet(int rowId){
-        Row rowData = threadCache.getRow(rowId);
+        Row rowData = threadCache.get().getRow(rowId);
         if (rowData != null){
             return rowData;
         }
@@ -185,8 +185,8 @@ public class SSPConsistencyController extends ConsistencyController {
         if(clientRow != null){
             int clock = clientRow.getClock();
             if (clock >= stalestClock){
-                threadCache.insertRow(rowId, clientRow.getRowData());
-                return Preconditions.checkNotNull(threadCache.getRow(rowId));
+                threadCache.get().insertRow(rowId, clientRow.getRowData());
+                return Preconditions.checkNotNull(threadCache.get().getRow(rowId));
             }
         }
         // Didn't find row_id that's fresh enough in process_storage_.
@@ -201,8 +201,8 @@ public class SSPConsistencyController extends ConsistencyController {
             }
         }while(clientRow == null);
         Preconditions.checkArgument(clientRow.getClock() >= stalestClock);
-        threadCache.insertRow(rowId, clientRow.getRowData());
-        return Preconditions.checkNotNull(threadCache.getRow(rowId));
+        threadCache.get().insertRow(rowId, clientRow.getRowData());
+        return Preconditions.checkNotNull(threadCache.get().getRow(rowId));
     }
 
 	/**
@@ -212,7 +212,7 @@ public class SSPConsistencyController extends ConsistencyController {
 	 * @param delta
 	 */
 	public void threadInc(int rowId, int columnId, Double delta){
-        threadCache.inc(rowId, columnId, delta);
+        threadCache.get().inc(rowId, columnId, delta);
     }
 
 	public void waitPendingAsnycGet(){
