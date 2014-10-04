@@ -73,6 +73,7 @@ public class ClientTable {
 	 */
 	public void batchInc(int row_id, Map<Integer, Double> updates){
         consistencyController.batchInc(row_id, updates);
+        threadBatchInc(row_id, updates);
 	}
 
 	public void clock(){
@@ -134,6 +135,7 @@ public class ClientTable {
 	 */
 	public void inc(int rowId, int columnId, Double update){
         consistencyController.inc(rowId, columnId, update);
+        threadInc(rowId, columnId, update);
 	}
 
 	public void registerThread(){
