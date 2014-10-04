@@ -75,7 +75,7 @@ public class SolveITML implements Runnable {
             //run ITML solver
             for(int iter = 0; iter < numIterations; iter++){
                 if(globalWorkerId == 0){
-                    System.out.format("The %d-th of %d iteration :\n",iter,numIterations);
+
                 }
                 // read the constrains and perform Bregman Projection
                 DenseMatrixLoader.Row consRow = consMatrix.getNextRow(globalWorkerId);
@@ -83,16 +83,20 @@ public class SolveITML implements Runnable {
                 DenseRow lambdaold = (DenseRow) tableParam.get(1);
                 DenseRow bhat      = (DenseRow) tableParam.get(2);
 
-                /*
+
                 if(globalWorkerId == 1) {
-                    printA(tableA);
+                    //printA(tableA);
                     int temp = 0;
                     int temp1 = 1;
                 }
-                */
+
                 //Step 1: Calculate d_A(x1,x2)
                 float wtw = calculateDistance(consRow.rowNum);
                 //Step 2: Calculate beta
+                if(globalWorkerId == 1){
+                    System.out.format("%.4f\n",bhat.get(consRow.rowNum));
+                    int a = 1;
+                }
                 float beta = calculateBeta(wtw, consRow, lambda.get(consRow.rowNum), bhat.get(consRow.rowNum));
                 //Step 3: Update metrix A
                 updateMatrixA(globalWorkerId, beta, consRow.value);
@@ -101,19 +105,26 @@ public class SolveITML implements Runnable {
                 //Step 5: Pre-calculate the distance of next row
                 pregetNextRow(globalWorkerId);
 
+                /*
                 if(globalWorkerId == 0){
                     //printBlock(0,1);
                     //System.out.format("This is the %d-th thread\n",globalWorkerId);
                     //printBlock(0,0);
                     int tem2 = 0;
                 }
+                */
 
                 PSTableGroup.clock();
                 if(globalWorkerId == 1){
-                    System.out.format("%d-th thread: wtw = %f \n", globalWorkerId, wtw);
-                    System.out.format("beta = %.5f\n",beta);
+                    System.out.format("The %d-th of %d iteration :\n",iter,numIterations);
+                    System.out.format("%d-th thread\n: wtw = %.4f \n", globalWorkerId, wtw);
+                    System.out.format("beta = %.4f\n",beta);
                     System.out.format("BP Row: %d-th row\n",consRow.rowNum);
+                    DenseRow la = (DenseRow)tableParam.get(0);
+                    System.out.format("lambda = %.4f\n",la.get(0));
                     printA(tableA);
+                    System.out.format("\n");
+                    int t = 0;
                 }
             }
             long end = System.currentTimeMillis();
@@ -143,7 +154,6 @@ public class SolveITML implements Runnable {
             }
             tableA.batchInc( bii.globalWorkerId , updateA);
         }
-        printA(tableA);
 
         // initial parameters of ITML
         Map<Integer,Double> updateLambda = new HashMap<Integer, Double>();
@@ -197,8 +207,12 @@ public class SolveITML implements Runnable {
             // output error to log
             System.out.println("bhat should never be 0!");
         }
-        float gammaProj = (Float.POSITIVE_INFINITY== gammaITML)? 1: gammaITML / (gammaITML + 1);
+        float gammaProj = (Float.POSITIVE_INFINITY== gammaITML)? 1: (gammaITML / (gammaITML + 1));
         double alpha, beta, bhatNew;
+        if(globalBlock.globalWorkerId == 1){
+            int i = 0;
+
+        }
         if(Math.abs(row.get(2) - 1) < 10e-10){
             alpha = Math.min( lambda, gammaProj * (1/wtw - 1/bhat));
             beta = alpha / (1 - alpha * wtw);
@@ -207,6 +221,9 @@ public class SolveITML implements Runnable {
             alpha = Math.min(lambda, gammaProj * (1/bhat - 1/wtw));
             beta = -alpha / (1 + alpha*wtw);
             bhatNew = 1 / ( (1/bhat) - (alpha/gammaITML) );
+        }
+        if(globalBlock.globalWorkerId ==1 ){
+            int i  = 2;
         }
         tableParam.inc(0, rowNum, -alpha / ITML.getTotalNumWorker());  // lambda(rowNum) = lambda(rowNum) - alpha;
         tableParam.inc(2, rowNum, (bhatNew - bhat) / ITML.getTotalNumWorker());  // update bhat(rowNum)
@@ -227,7 +244,6 @@ public class SolveITML implements Runnable {
         Vector<DenseRow> rowI = new Vector<DenseRow>();
         for(int i = 0; i < numBlockInRow; i++){
             int workerId = blocks.get( blockIndex.blockRowIndexi * numBlockInRow + i).globalWorkerId;
-            //System.out.format("block(%d,%d) : workerID = %d, globalworker = %d\n",blockIndex.blockRowIndexi,i,workerId,globalWorkerId);
             DenseRow bi = (DenseRow) tableA.get(workerId);
             rowI.add(i,bi);
         }
@@ -239,14 +255,8 @@ public class SolveITML implements Runnable {
                 DenseRow aij = rowI.get(j);
                 MetricLearnBlock bij = blocks.get(blockIndex.blockRowIndexi * numBlockInRow + j);
                 for (int n = 0; n < bij.columnSize; n++){
-                    if(globalWorkerId == 1){
-                        System.out.format("%f\t", aij.get( i * bij.stepRow + n * bij.stepColumn ));
-                    }
                     dist += aij.get( i * bij.stepRow + n * bij.stepColumn ) * v.get(idx);
                     idx ++;
-                }
-                if(globalWorkerId == 1){
-                    System.out.format("\n");
                 }
             }
             t1.add(i,dist);
@@ -275,9 +285,7 @@ public class SolveITML implements Runnable {
             }
             t2.add(i,dist);
         }
-        if(globalWorkerId == 1){
-            int s = 1;
-        }
+
         // Update the corresponding globalBlock of A: A = A + beta t1 * t2
         Map<Integer,Double> updateA = new HashMap<Integer, Double>();
         for( int i = 0; i < globalBlock.rowSize; i++){
@@ -286,10 +294,6 @@ public class SolveITML implements Runnable {
             }
         }
         tableA.batchInc(globalWorkerId, updateA);
-        if(globalWorkerId == 1){
-            printA(tableA);
-            int a = 1;
-        }
     }
     private boolean checkConvergence(boolean isLastRow, DenseRow lambda, DenseRow lambdaold){
         // test whether ITML converges
@@ -357,11 +361,11 @@ public class SolveITML implements Runnable {
 
                 for(int i = 0; i < block.rowSize; i++){
                     for(int j = 0; j < block.columnSize; j++){
-                        System.out.format("%.5f\t",aij.get( i * block.stepRow + j * block.stepColumn));
+                        System.out.format("%.4f\t",aij.get( i * block.stepRow + j * block.stepColumn));
                     }
                     System.out.format("\n");
                 }
-                System.out.format("END of Print Block(%d,%d) in Thread %d\n\n",block.blockRowIndexi,block.blockColumnIndexj, block.globalWorkerId);
+                System.out.format("END of Print Block(%d,%d) in Thread %d\n",block.blockRowIndexi,block.blockColumnIndexj, block.globalWorkerId);
             }
         }
     }

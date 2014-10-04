@@ -73,7 +73,7 @@ public class SSPConsistencyController extends ConsistencyController {
 
         ClientRow clientRow = processStorage.getIfPresent(rowId);
         if (clientRow != null){
-            clientRow.getRowData().applyBatchInc(updates);
+           // clientRow.getRowData().applyBatchInc(updates);
         }
     }
 
@@ -157,7 +157,9 @@ public class SSPConsistencyController extends ConsistencyController {
         //update to process_storage
         ClientRow clientRow = processStorage.getIfPresent(rowId);
         if (clientRow != null){
-            clientRow.getRowData().applyInc(columnId, delta);
+            int stalestClock = ThreadContext.getClock();
+            int clientClock = clientRow.getClock();
+            //clientRow.getRowData().applyInc(columnId, delta);
         }
     }
 
