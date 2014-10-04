@@ -43,7 +43,7 @@ public class ClientTable {
         switch (GlobalContext.getConsistencyModel()){
             case SSP:
             {
-                consistencyController = new SSPConsistencyController(config.tableInfo, tableId, sampleRow,threadCache.get(),
+                consistencyController = new SSPConsistencyController(config.tableInfo, tableId, sampleRow,threadCache,
                         config.processCacheCapacity);
                 break;
             }

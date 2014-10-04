@@ -46,8 +46,8 @@ public class SSPConsistencyController extends ConsistencyController {
 	 * @param sampleRow
 	 * @param threadCache
 	 */
-	public SSPConsistencyController(TableInfo info, int tableId, final Row sampleRow, ThreadTable threadCache, int cacheSize){
-        this.threadCache.set(threadCache);
+	public SSPConsistencyController(TableInfo info, int tableId, final Row sampleRow, ThreadLocal<ThreadTable> threadCache, int cacheSize){
+        this.threadCache = threadCache;
         this.sampleRow = sampleRow;
         this.sampleRow.init(info.rowCapacity);
         this.tableId = tableId;
