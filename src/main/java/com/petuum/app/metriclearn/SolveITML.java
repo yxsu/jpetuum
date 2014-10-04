@@ -63,7 +63,7 @@ public class SolveITML implements Runnable {
             if(globalWorkerId == 0){
                 initITML(globalWorkerId);
                 System.out.format("After initial of A:\n");
-                //printA(tableA);
+                printA(tableA);
             }
 
             // wait until the 0-th worker finishes initialization of PSTable
@@ -83,11 +83,13 @@ public class SolveITML implements Runnable {
                 DenseRow lambdaold = (DenseRow) tableParam.get(1);
                 DenseRow bhat      = (DenseRow) tableParam.get(2);
 
+                /*
                 if(globalWorkerId == 1) {
                     printA(tableA);
                     int temp = 0;
                     int temp1 = 1;
                 }
+                */
                 //Step 1: Calculate d_A(x1,x2)
                 float wtw = calculateDistance(consRow.rowNum);
                 //Step 2: Calculate beta
@@ -101,7 +103,7 @@ public class SolveITML implements Runnable {
 
                 if(globalWorkerId == 0){
                     //printBlock(0,1);
-                    System.out.format("This is the %d-th thread\n",globalWorkerId);
+                    //System.out.format("This is the %d-th thread\n",globalWorkerId);
                     //printBlock(0,0);
                     int tem2 = 0;
                 }
@@ -111,7 +113,7 @@ public class SolveITML implements Runnable {
                     System.out.format("%d-th thread: wtw = %f \n", globalWorkerId, wtw);
                     System.out.format("beta = %.5f\n",beta);
                     System.out.format("BP Row: %d-th row\n",consRow.rowNum);
-                    //printA(tableA);
+                    printA(tableA);
                 }
             }
             long end = System.currentTimeMillis();
@@ -135,11 +137,13 @@ public class SolveITML implements Runnable {
         // initial A
         for(int i = 0; i < numBlockInRow; i++){
             Map<Integer, Double> updateA = new HashMap<Integer, Double>();
-            for(int j = 0; j < blocks.get( i*numBlockInRow+i ).rowSize; j++){
-                updateA.put( j * blocks.get( i*numBlockInRow+i ).rowSize + j, 1.0);
+            MetricLearnBlock bii = blocks.get( i*numBlockInRow+i );
+            for(int j = 0; j < bii.rowSize; j++){
+                updateA.put( j * bii.rowSize + j, 1.0);
             }
-            tableA.batchInc( i*numBlockInRow+i , updateA);
+            tableA.batchInc( bii.globalWorkerId , updateA);
         }
+        printA(tableA);
 
         // initial parameters of ITML
         Map<Integer,Double> updateLambda = new HashMap<Integer, Double>();
@@ -248,6 +252,7 @@ public class SolveITML implements Runnable {
             t1.add(i,dist);
         }
 
+
         rowI = new Vector<DenseRow>();
         for(int i = 0; i < numBlockInRow; i++){
             //System.out.format("block(%d,%d) :  globalworker = %d\n",blockIndex.blockColumnIndexj,i,globalWorkerId);
@@ -270,16 +275,21 @@ public class SolveITML implements Runnable {
             }
             t2.add(i,dist);
         }
+        if(globalWorkerId == 1){
+            int s = 1;
+        }
         // Update the corresponding globalBlock of A: A = A + beta t1 * t2
         Map<Integer,Double> updateA = new HashMap<Integer, Double>();
         for( int i = 0; i < globalBlock.rowSize; i++){
             for( int j = 0; j< globalBlock.columnSize; j++ ){
-                updateA.put( i*globalBlock.rowSize + j, beta * t1.get(i) * t2.get(j));
+                updateA.put( i * globalBlock.stepRow + j * globalBlock.stepColumn, beta * t1.get(i) * t2.get(j));
             }
         }
         tableA.batchInc(globalWorkerId, updateA);
-
-
+        if(globalWorkerId == 1){
+            printA(tableA);
+            int a = 1;
+        }
     }
     private boolean checkConvergence(boolean isLastRow, DenseRow lambda, DenseRow lambdaold){
         // test whether ITML converges
@@ -340,18 +350,18 @@ public class SolveITML implements Runnable {
     }
 
     public void printA(ClientTable tableA){
-        int workerId = 0;
         for(int n = 0; n < numBlockInRow; n++){
             for(int m = 0; m < numBlockInRow; m++){
-                DenseRow aij = (DenseRow) tableA.get(workerId++);
                 MetricLearnBlock block = blocks.get( n * numBlockInRow + m);
+                DenseRow aij = (DenseRow) tableA.get(block.globalWorkerId);
+
                 for(int i = 0; i < block.rowSize; i++){
                     for(int j = 0; j < block.columnSize; j++){
                         System.out.format("%.5f\t",aij.get( i * block.stepRow + j * block.stepColumn));
                     }
                     System.out.format("\n");
                 }
-                System.out.format("END of Print Block(%d,%d) in Thread %d\n\n",block.blockRowIndexi,block.blockColumnIndexj, workerId);
+                System.out.format("END of Print Block(%d,%d) in Thread %d\n\n",block.blockRowIndexi,block.blockColumnIndexj, block.globalWorkerId);
             }
         }
     }
