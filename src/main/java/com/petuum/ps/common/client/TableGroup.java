@@ -114,6 +114,7 @@ public class TableGroup {
         int clock = vector_clock_.tick(ThreadContext.getId());
         if (clock != 0) {
             BgWorkers.clockAllTables();
+
         }
 	}
 
