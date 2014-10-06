@@ -51,6 +51,7 @@ public class SSPConsistencyController extends ConsistencyController {
         this.sampleRow = sampleRow;
         this.sampleRow.init(info.rowCapacity);
         this.tableId = tableId;
+        this.staleness = info.tableStaleness;
         this.opLog = new TableOpLog(tableId, sampleRow);
         this.opLogIndex = new TableOpLogIndex();
         this.processStorage = CacheBuilder.newBuilder().
