@@ -2,8 +2,6 @@ package com.petuum.ps.oplog;
 
 import com.google.common.util.concurrent.Striped;
 import com.petuum.ps.thread.GlobalContext;
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
