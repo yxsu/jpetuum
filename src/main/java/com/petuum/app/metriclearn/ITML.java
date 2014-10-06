@@ -36,7 +36,7 @@ public class ITML {
     private static int clientID = 0;
     private static int K = 2;
     private static int numIterations = 54983;
-    private static int staleness = 0;
+    private static int staleness = 5;
     private static DenseMatrixLoader consMatrix;
     private static DenseMatrixLoader trainMatrix;
     private static DenseMatrixLoader testMatrix;
