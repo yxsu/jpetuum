@@ -41,33 +41,52 @@ mainClassName = "com.petuum.app"
 applicationDefaultJvmArgs = []
 
 
-task runMatrixFact(type: JavaExec, dependsOn: build) {
+
+
+
+def remoteHost = [0: '10.10.34.50', 1: '10.10.34.51']
+def commonUser = 'curi'
+def commonPassword = 'curi504'
+
+ssh {
+    knownHosts = allowAnyHosts
+}
+
+task remoteRun(type: SshTask) {
+}
+
+task deploy(dependsOn: build) {
+    remoteHost.each() {id, ip ->
+        remoteRun<< {
+            session(host: ip, user: commonUser, password: commonPassword) {
+                println 'Connecting ' + ip
+                println 'Killing previous instance...'
+                execute 'gradle --stop'
+                if(id == 0) {
+                    def result = execute 'gradle runMatrixFact -PclientID='+id
+                    println result
+                } else {
+                    execute 'gradle runMatrixFact -PclientID='+id + '&'
+                }
+            }
+        }
+    }
+    remoteRun
+}
+
+task runMatrixFact(type: JavaExec, dependsOn: jar) {
+    def clientID = 0
+    if(project.hasProperty('clientID')) {
+        clientID = project.property('clientID')
+    }
     main 'com.petuum.app.MatrixFact'
     classpath = jar.outputs.files + project.configurations.runtime
     args '-hostFile=localserver'
     args '-dataset=9x9_3blocks'
     args '-numClient=1'
     args '-numWorkerThreads=1'
-    args '-clientID=0'
+    args '-clientID=' + clientID
     args '-k=2'
     args '-iter=10'
     args '-s=0'
 }
-
-def remoteHost = ['10.10.34.51', '10.10.34.52']
-
-/*
-task deploy() {
-    remoteHost.each() {ip ->
-        ssh {
-            knownHosts = allowAnyHosts
-        }
-            ssh.run {
-                session(host: ip, user: 'curi', password: 'curi504') {
-                    println 'Connecting ' + ip
-                    def result = execute 'ls'
-                    println result
-                }
-            }
-    }
-} */
