@@ -1,6 +1,12 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
+def remoteHost = new HashMap()
+def commonUser = 'curi'
+def commonPassword = 'curi504'
+def hostFile = 'two_nodes'
+def datasetFile = '9x9_3blocks'
+
 sourceCompatibility = 1.8
 version = '1.0'
 
@@ -15,8 +21,13 @@ buildscript {
 
     dependencies {
         classpath 'org.hidetake:gradle-ssh-plugin:0.4.2'
+        classpath 'org.codehaus.gpars:gpars:1.2.1'
     }
 }
+
+import groovyx.gpars.GParsPool
+
+import java.nio.file.FileSystems
 
 dependencies {
     compile group:'org.zeromq', name: 'jeromq', version: '0.3.4'
@@ -40,38 +51,44 @@ task copyJars(type: Copy) {
 mainClassName = "com.petuum.app"
 applicationDefaultJvmArgs = []
 
-
-
-
-
-def remoteHost = [0: '10.10.34.50', 1: '10.10.34.51']
-def commonUser = 'curi'
-def commonPassword = 'curi504'
-
 ssh {
     knownHosts = allowAnyHosts
 }
 
-task remoteRun(type: SshTask) {
+task readHosts() {
+    def hosts = FileSystems.getDefault().getPath("machines", hostFile)
+    def id = 0
+    hosts.eachLine() {line ->
+        def parts = line.split(/( )/)
+        //bug
+        if(parts[0] != '0') {
+            println parts[1]
+            remoteHost << [id : parts[1]]
+            id = id + 1
+        }
+    }
+    outputs.upToDateWhen {false}
 }
 
-task deploy(dependsOn: build) {
+task deployMatrixFact(dependsOn: [build, readHosts]) {
     remoteHost.each() {id, ip ->
-        remoteRun<< {
+        println id + ' : ' + ip
+        def t = tasks.create(name: 'remoteRunNode'+id, type: SshTask) {
             session(host: ip, user: commonUser, password: commonPassword) {
                 println 'Connecting ' + ip
                 println 'Killing previous instance...'
                 execute 'gradle --stop'
-                if(id == 0) {
-                    def result = execute 'gradle runMatrixFact -PclientID='+id
-                    println result
-                } else {
-                    execute 'gradle runMatrixFact -PclientID='+id + '&'
-                }
+                execute 'Run MatrixFact with clientID=' + id
+                executeBackground 'cd ' + project.getProjectDir() +';nohup gradle runMatrixFact -PclientID='+id + ' -daemon &'
             }
         }
     }
-    remoteRun
+    //run
+    GParsPool.withPool(10) {
+        tasks.withType(SshTask).eachParallel {task ->
+            task.execute()
+        }
+    }
 }
 
 task runMatrixFact(type: JavaExec, dependsOn: jar) {
@@ -81,9 +98,9 @@ task runMatrixFact(type: JavaExec, dependsOn: jar) {
     }
     main 'com.petuum.app.MatrixFact'
     classpath = jar.outputs.files + project.configurations.runtime
-    args '-hostFile=localserver'
-    args '-dataset=9x9_3blocks'
-    args '-numClient=1'
+    args '-hostFile=' + hostFile
+    args '-dataset=' + datasetFile
+    args '-numClient=2'
     args '-numWorkerThreads=1'
     args '-clientID=' + clientID
     args '-k=2'
