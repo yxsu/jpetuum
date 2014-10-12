@@ -16,27 +16,39 @@ import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.BrokenBarrierException;
 
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
+
 /**
 * Created by suyuxin on 14-8-23.
 */
 public class MatrixFact {
-    private static Path hostFile = FileSystems.getDefault().getPath("machines", "localserver");
-    private static Path dataFile = FileSystems.getDefault().getPath("dataset", "9x9_3blocks");
-    private static Path outputPrefix = FileSystems.getDefault().getPath("test");
-    private static double lambda = 0.0;
-    private static double initStepSize = 0.5;
-    private static double stepSizeOffset = 100;
-    private static double stepSizePow = 0.5;
-    private static int rngSeed = 967234;
-    private static int numClient = 1;
-    private static int numWorkerThreads = 3;
-    private static int clientID = 0;
-    private static int K = 2;
-    private static int numIterations = 10;
-    private static int staleness = 0;
-    private static MatrixLoader dataMatrix;
+    @Option(name="-hostFile", required = true, usage = "Set the name of Petuum PS server configuration file")
+    private String serverFile;
+    @Option(name="-dataset", required = true, usage = "Set the name of sparse matrix file")
+    private String datasetFile;
+    private Path outputPrefix = FileSystems.getDefault().getPath("test");
+    private double lambda = 0.0;
+    private double initStepSize = 0.5;
+    private double stepSizeOffset = 100;
+    private double stepSizePow = 0.5;
+    private int rngSeed = 967234;
+    @Option(name="-numClient", usage = "Set the number of total client")
+    private int numClient = 1;
+    @Option(name="-numWorkerThreads", usage = "Set the number of worker threads per client")
+    private int numWorkerThreads = 1;
+    @Option(name="-clientID", required = true, usage = "Set client ID of worker node")
+    private int clientID = 0;
+    @Option(name="-k", required = true, usage = "Set the dimension of latent variable")
+    private int K = 2;
+    @Option(name="-iter", required = true, usage = "Set the number of iteration")
+    private int numIterations = 10;
+    @Option(name="-s", aliases = "-staleness", required = true, usage = "Set the max length of staleness")
+    private int staleness = 0;
+    private MatrixLoader dataMatrix;
 
-    private static void sgdElement(int i , int j, float xij, double stepSize, int globalWorkerId,
+    private void sgdElement(int i , int j, float xij, double stepSize, int globalWorkerId,
                             ClientTable tableL, ClientTable tableR, ClientTable tableLoss) {
         //read L(i, :) and R(:, j) from Petuum PS
         DenseRow li = (DenseRow)tableL.get(i, 0, K);
@@ -69,15 +81,15 @@ public class MatrixFact {
         tableL.batchInc(i, liUpdate);
         tableR.batchInc(j, rjUpdate);
     }
-    private static int getTotalNumWorker() {
+    private int getTotalNumWorker() {
         return numClient * numWorkerThreads;
     }
 
-    private static int getGlobalWorkerId(int localThreadId) {
+    private int getGlobalWorkerId(int localThreadId) {
         return clientID * numWorkerThreads + localThreadId;
     }
 
-    private static void initMF(ClientTable tableL, ClientTable tableR) {
+    private void initMF(ClientTable tableL, ClientTable tableR) {
         Random rand = new Random(rngSeed);
         // Add a random initialization in [-1,1)/num_workers to each element of L and R
         int numWorkers = getTotalNumWorker();
@@ -98,7 +110,7 @@ public class MatrixFact {
         }
     }
 
-    public static class SolveMF implements Runnable {
+    public class SolveMF implements Runnable {
         public SolveMF(int localThreadId) {
             this.localThreadId = localThreadId;
         }
@@ -163,14 +175,28 @@ public class MatrixFact {
         private int localThreadId;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        MatrixFact runner = new MatrixFact();
+        CmdLineParser parser = new CmdLineParser(runner);
+        try {
+            parser.parseArgument(args);
+            runner.run();
+        } catch(CmdLineException e) {
+            parser.printUsage(System.out);
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void run()  throws Exception {
         //configure Petuum PS
         TableGroupConfig tableGroupconfig = new TableGroupConfig();
         tableGroupconfig.numTotalServerThreads = numClient;
         tableGroupconfig.numTotalBgThreads = numClient;
         tableGroupconfig.numTotalClients = numClient;
         tableGroupconfig.numTables = 3;//L_table, R_table, loss_table
-        tableGroupconfig.getHostInfos(hostFile);
+        tableGroupconfig.getHostInfos(FileSystems.getDefault().getPath("machines", serverFile));
         tableGroupconfig.consistencyModel = ConsistencyModel.SSP;
         //local parameters for this process
         tableGroupconfig.numLocalServerThreads = 1;
@@ -183,7 +209,7 @@ public class MatrixFact {
         //next..
         PSTableGroup.init(tableGroupconfig, false);
         //load data
-        dataMatrix = new StandardMatrixLoader(dataFile, getTotalNumWorker());
+        dataMatrix = new StandardMatrixLoader(FileSystems.getDefault().getPath("dataset", datasetFile), getTotalNumWorker());
 
         //config ps table
         ClientTableConfig tableConfig = new ClientTableConfig();

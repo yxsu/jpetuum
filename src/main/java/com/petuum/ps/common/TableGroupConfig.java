@@ -97,7 +97,6 @@ public class TableGroupConfig {
 
         Files.lines(hostFile).forEachOrdered(new Consumer<String>() {
             public void accept(String s) {
-                System.out.println(s);
                 String[] temp = s.split(" ");
                 int id = Integer.valueOf(temp[0]);
                 hostMap.putIfAbsent(id, new HostInfo(id, temp[1], temp[2]));
