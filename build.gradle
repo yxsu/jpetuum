@@ -57,14 +57,11 @@ ssh {
 
 task readHosts() {
     def hosts = FileSystems.getDefault().getPath("machines", hostFile)
-    def id = 0
-    hosts.eachLine() {line ->
+    hosts.eachLine() {line, lineNo ->
         def parts = line.split(/( )/)
         //bug
         if(parts[0] != '0') {
-            println parts[1]
-            remoteHost << [id : parts[1]]
-            id = id + 1
+            remoteHost << [(lineNo - 2) : parts[1]]
         }
     }
     outputs.upToDateWhen {false}
