@@ -51,44 +51,7 @@ task copyJars(type: Copy) {
 mainClassName = "com.petuum.app"
 applicationDefaultJvmArgs = []
 
-ssh {
-    knownHosts = allowAnyHosts
-}
-
-task readHosts() {
-    def hosts = FileSystems.getDefault().getPath("machines", hostFile)
-    hosts.eachLine() {line, lineNo ->
-        def parts = line.split(/( )/)
-        //bug
-        if(parts[0] != '0') {
-            remoteHost << [(lineNo - 2) : parts[1]]
-        }
-    }
-    outputs.upToDateWhen {false}
-}
-
-task deployMatrixFact(dependsOn: [build, readHosts]) {
-    remoteHost.each() {id, ip ->
-        println id + ' : ' + ip
-        def t = tasks.create(name: 'remoteRunNode'+id, type: SshTask) {
-            session(host: ip, user: commonUser, password: commonPassword) {
-                println 'Connecting ' + ip
-                println 'Killing previous instance...'
-                execute 'gradle --stop'
-                execute 'Run MatrixFact with clientID=' + id
-                executeBackground 'cd ' + project.getProjectDir() +';nohup gradle runMatrixFact -PclientID='+id + ' -daemon &'
-            }
-        }
-    }
-    //run
-    GParsPool.withPool(10) {
-        tasks.withType(SshTask).eachParallel {task ->
-            task.execute()
-        }
-    }
-}
-
-task runMatrixFact(type: JavaExec, dependsOn: jar) {
+task runMatrixFact(type: JavaExec, dependsOn: build) {
     def clientID = 0
     if(project.hasProperty('clientID')) {
         clientID = project.property('clientID')
@@ -104,3 +67,44 @@ task runMatrixFact(type: JavaExec, dependsOn: jar) {
     args '-iter=10'
     args '-s=0'
 }
+
+ssh.settings {
+    knownHosts = allowAnyHosts
+}
+
+task readHosts() {
+    def hosts = FileSystems.getDefault().getPath("machines", hostFile)
+    hosts.eachLine() {line, lineNo ->
+        def parts = line.split(/( )/)
+        //bug
+        if(parts[0] != '0') {
+            remoteHost << [(lineNo - 2) : parts[1]]
+        }
+    }
+}
+
+task deployMatrixFact(dependsOn: [build, readHosts]) {
+    remoteHost.each() {id, ip ->
+        println id + ' : ' + ip
+        def t = tasks.create(name: 'remoteRunNode'+id, type: SshTask) {
+            session(host: ip, user: commonUser, password: commonPassword) {
+                println 'Connecting ' + ip
+                println 'Killing previous instance...'
+                execute 'gradle --stop'
+                println 'Run MatrixFact with clientID=' + id
+                def result = execute 'cd ' + project.getProjectDir() +';gradle runMatrixFact -PclientID='+id + ' -daemon'
+                println result
+            }
+        }
+        //deployMatrixFact.dependsOn(t)
+    }
+    //run
+    doLast {
+        GParsPool.withPool(10) {
+            tasks.withType(SshTask).eachParallel {task ->
+                task.execute()
+            }
+        }
+    }
+}
+

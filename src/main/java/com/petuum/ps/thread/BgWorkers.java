@@ -186,7 +186,7 @@ public class BgWorkers {
                     new Class[]{IntBox.class});
             commBusRecvAsyncAny = commBus.getClass().getMethod("recvAsync",
                     new Class[]{IntBox.class});
-            commBusRecvTimeOutAny = commBus.getClass().getMethod("recvTimeout",
+            commBusRecvTimeOutAny = commBus.getClass().getMethod("recvTimeOut",
                     new Class[]{IntBox.class, long.class});
             commBusSendAny = commBus.getClass().getMethod("send",
                     new Class[]{int.class, ByteBuffer.class});
@@ -818,20 +818,23 @@ public class BgWorkers {
                 ByteBuffer msgBuf = null;
                 IntBox nameNodeId = new IntBox();
 
-                try {
-                    msgBuf = (ByteBuffer) commBusRecvAny.invoke(commBus, nameNodeId);
+                while(true) {
+                    try {
+                        msgBuf = (ByteBuffer) commBusRecvAny.invoke(commBus, nameNodeId);
 
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } catch (InvocationTargetException e) {
-                    e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
+                    msgType = new NumberedMsg(msgBuf).getMsgType();
+                    log.info("receive a message with type " + String.valueOf(msgType) + " from " + String.valueOf(nameNodeId.intValue));
+                    if(msgType == NumberedMsg.K_CREATE_TABLE_REPLY)break;
                 }
-                msgType = new NumberedMsg(msgBuf).getMsgType();
-                log.info("receive a message with type " + String.valueOf(msgType) +" from " + String.valueOf(nameNodeId.intValue));
-                Preconditions.checkArgument(msgType == NumberedMsg.K_CREATE_TABLE_REPLY);
 
                 CreateTableReplyMsg createTableReplyMsg = new CreateTableReplyMsg(msgBuf);
                 Preconditions.checkArgument(createTableReplyMsg.getTableId() == tableId);
+
                 //Create ClientTable
                 ClientTable clientTable = new ClientTable(tableId, clientTableConfig);
                 tables.putIfAbsent(tableId, clientTable);   //not thread safe

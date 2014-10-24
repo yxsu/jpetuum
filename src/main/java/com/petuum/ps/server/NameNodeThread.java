@@ -91,7 +91,7 @@ public class NameNodeThread {
                         }
                         case NumberedMsg.K_CREATE_TABLE_REPLY:
                         {
-                            log.info("get CreateTableReplyMsg from bg " + String.valueOf(senderId.intValue));
+                            log.info("get CreateTableReplyMsg from server " + String.valueOf(senderId.intValue));
                             handleCreateTableReply(new CreateTableReplyMsg(buffer));
                             break;
                         }

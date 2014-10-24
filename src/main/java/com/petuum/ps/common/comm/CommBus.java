@@ -231,8 +231,12 @@ public class CommBus {
     public ByteBuffer recv(IntBox entityId){
         if(threadInfo.get().pollItems == null) {
             threadInfo.get().pollItems = new ZMQ.Poller(2);
-            threadInfo.get().pollItems.register(threadInfo.get().inprocSock, ZMQ.Poller.POLLIN);
-            threadInfo.get().pollItems.register(threadInfo.get().interprocSock, ZMQ.Poller.POLLIN);
+            if(threadInfo.get().inprocSock != null) {
+                threadInfo.get().pollItems.register(threadInfo.get().inprocSock, ZMQ.Poller.POLLIN);
+            }
+            if(threadInfo.get().interprocSock != null) {
+                threadInfo.get().pollItems.register(threadInfo.get().interprocSock, ZMQ.Poller.POLLIN);
+            }
         }
         threadInfo.get().pollItems.poll();
         ZMQ.Socket sock;
