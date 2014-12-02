@@ -10,7 +10,7 @@ public class ZMQClientTest {
         ZMQ.Context context = ZMQ.context(1);
 
         //  Socket to talk to server
-        System.out.println("Connecting to hello world server…");
+        System.out.println("Connecting to hello world server");
 
         ZMQ.Socket requester = context.socket(ZMQ.REQ);
         requester.connect("tcp://localhost:5555");

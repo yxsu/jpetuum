@@ -64,7 +64,7 @@ public class ZMQRouterTest {
         public void run() {
             threadInfo.set(new ZMQData());
             //  Socket to talk to server
-            System.out.println("Connecting to hello world server…");
+            System.out.println("Connecting to hello world server");
             String bindEndpoint = "tcp://*:5556";
             String connectEndpoint = "tcp://localhost:5555";
             threadInfo.get().sock = zmqContext.createSocket(ZMQ.ROUTER);
