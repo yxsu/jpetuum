@@ -1,7 +1,10 @@
 package com.petuum.ps.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -9,10 +12,10 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 /**
  * Created by Yuxin Su on 2014/12/2.
  */
-public class DiscardServer {
+public class CountServer {
     private int port;
 
-    public DiscardServer(int port) {
+    public CountServer(int port) {
         this.port = port;
     }
 
@@ -27,7 +30,7 @@ public class DiscardServer {
 
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast(new DiscardServerHandler());
+                            ch.pipeline().addLast(new CountServerHandler());
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)
@@ -46,6 +49,6 @@ public class DiscardServer {
             port = Integer.parseInt(args[0]);
         }
 
-        new DiscardServer(port).run();
+        new CountServer(port).run();
     }
 }
