@@ -8,6 +8,14 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.marshalling.MarshallerProvider;
+import io.netty.handler.codec.marshalling.MarshallingDecoder;
+import io.netty.handler.codec.marshalling.MarshallingEncoder;
+
+import io.netty.handler.codec.marshalling.UnmarshallerProvider;
+import org.jboss.marshalling.*;
+
+import java.io.IOException;
 
 /**
  * Created by Yuxin Su on 2014/12/2.
@@ -15,9 +23,13 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 public class CountServer {
     private int port;
 
-    public CountServer(int port) {
+
+
+    public CountServer(int port) throws IOException {
         this.port = port;
+
     }
+
 
     public void run() throws InterruptedException {
         EventLoopGroup boss = new NioEventLoopGroup();
@@ -30,6 +42,7 @@ public class CountServer {
 
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
+
                             ch.pipeline().addLast(new CountServerHandler());
                         }
                     })
@@ -43,7 +56,7 @@ public class CountServer {
         }
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         int port = 8080;
         if(args.length > 0) {
             port = Integer.parseInt(args[0]);

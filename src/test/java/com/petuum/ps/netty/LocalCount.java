@@ -2,23 +2,20 @@ package com.petuum.ps.netty;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.DefaultEventLoopGroup;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.local.LocalAddress;
 import io.netty.channel.local.LocalChannel;
 import io.netty.channel.local.LocalServerChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.handler.codec.compression.ZlibCodecFactory;
-import io.netty.handler.codec.compression.ZlibWrapper;
+
+import java.io.IOException;
 
 
 /**
  * Created by Yuxin Su on 2014/12/4.
  */
 public class LocalCount {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
 
         LocalAddress local = new LocalAddress("8089");
 
@@ -39,7 +36,8 @@ public class LocalCount {
                     .childHandler(new ChannelInitializer<LocalChannel>() {
                         @Override
                         protected void initChannel(LocalChannel ch) throws Exception {
-                            ch.pipeline().addLast(new CountServerHandler());
+                            ChannelPipeline pipeline = ch.pipeline();
+                            pipeline.addLast(new CountServerHandler());
                         }
                     });
             //client

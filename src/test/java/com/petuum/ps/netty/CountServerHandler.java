@@ -16,23 +16,22 @@ public class CountServerHandler extends ChannelHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println("channelActive");
-        ByteBuf buf = ctx.alloc().buffer(4);
-        buf.writeInt(local_count);
-        ctx.writeAndFlush(buf);
+        MyMessage msg = new MyMessage(local_count, "");
+        ctx.writeAndFlush(msg);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf buf = (ByteBuf)msg;
+        MyMessage buf = (MyMessage)msg;
 
-        if(buf.isReadable()) {
-            local_count = buf.readInt();
+
+            local_count = buf.count;
             if(local_count % 10000 == 0) {
                 System.out.println("Server : " + String.valueOf(local_count));
             }
-            buf.writeInt(local_count);
+            buf.count = local_count;
             ctx.writeAndFlush(buf);
-        }
+
     }
 
     @Override
