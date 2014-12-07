@@ -1,5 +1,6 @@
 package com.petuum.ps.netty;
 
+import com.google.protobuf.MessageLite;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -7,6 +8,10 @@ import io.netty.channel.local.LocalAddress;
 import io.netty.channel.local.LocalChannel;
 import io.netty.channel.local.LocalServerChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.handler.codec.protobuf.ProtobufDecoder;
+import io.netty.handler.codec.protobuf.ProtobufEncoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 
 import java.io.IOException;
 
@@ -18,6 +23,7 @@ public class LocalCount {
     public static void main(String[] args) throws InterruptedException, IOException {
 
         LocalAddress local = new LocalAddress("8089");
+        MessageLite lite = AddressBookProtos.Person.getDefaultInstance();
 
         EventLoopGroup serverGroup = new DefaultEventLoopGroup();
         EventLoopGroup clientGroup = new NioEventLoopGroup();
@@ -37,6 +43,10 @@ public class LocalCount {
                         @Override
                         protected void initChannel(LocalChannel ch) throws Exception {
                             ChannelPipeline pipeline = ch.pipeline();
+                            pipeline.addLast(new ProtobufVarint32FrameDecoder());
+                            pipeline.addLast(new ProtobufDecoder(lite));
+                            pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
+                            pipeline.addLast(new ProtobufEncoder());
                             pipeline.addLast(new CountServerHandler());
                         }
                     });
@@ -47,7 +57,11 @@ public class LocalCount {
                     .handler(new ChannelInitializer<LocalChannel>() {
                         @Override
                         protected void initChannel(LocalChannel ch) throws Exception {
-                            ch.pipeline().addLast(new CountClientHandler());
+                            ChannelPipeline pipeline = ch.pipeline();
+                            pipeline.addLast(new ProtobufVarint32FrameDecoder());
+                            pipeline.addLast(new ProtobufEncoder());
+                            pipeline.addLast(new ProtobufDecoder(lite));
+                            pipeline.addLast(new CountClientHandler());
                         }
                     });
             //start the server
