@@ -1,5 +1,6 @@
 package com.petuum.ps.netty;
 
+import com.petuum.ps.netty.protobuf.CountClientHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;

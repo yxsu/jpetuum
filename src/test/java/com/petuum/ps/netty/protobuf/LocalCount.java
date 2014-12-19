@@ -1,6 +1,6 @@
-package com.petuum.ps.netty;
+package com.petuum.ps.netty.protobuf;
 
-import com.google.protobuf.MessageLite;
+import com.petuum.ps.netty.protobuf.AddressBookProtos.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -23,8 +23,6 @@ public class LocalCount {
     public static void main(String[] args) throws InterruptedException, IOException {
 
         LocalAddress local = new LocalAddress("8089");
-        MessageLite lite = AddressBookProtos.Person.getDefaultInstance();
-
         EventLoopGroup serverGroup = new DefaultEventLoopGroup();
         EventLoopGroup clientGroup = new NioEventLoopGroup();
 
@@ -44,7 +42,7 @@ public class LocalCount {
                         protected void initChannel(LocalChannel ch) throws Exception {
                             ChannelPipeline pipeline = ch.pipeline();
                             pipeline.addLast(new ProtobufVarint32FrameDecoder());
-                            pipeline.addLast(new ProtobufDecoder(lite));
+                            pipeline.addLast(new ProtobufDecoder(Person.getDefaultInstance()));
                             pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
                             pipeline.addLast(new ProtobufEncoder());
                             pipeline.addLast(new CountServerHandler());
@@ -59,8 +57,9 @@ public class LocalCount {
                         protected void initChannel(LocalChannel ch) throws Exception {
                             ChannelPipeline pipeline = ch.pipeline();
                             pipeline.addLast(new ProtobufVarint32FrameDecoder());
+                            pipeline.addLast(new ProtobufDecoder(Person.getDefaultInstance()));
+                            pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
                             pipeline.addLast(new ProtobufEncoder());
-                            pipeline.addLast(new ProtobufDecoder(lite));
                             pipeline.addLast(new CountClientHandler());
                         }
                     });

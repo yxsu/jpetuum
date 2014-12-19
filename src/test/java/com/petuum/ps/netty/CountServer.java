@@ -1,5 +1,6 @@
 package com.petuum.ps.netty;
 
+import com.petuum.ps.netty.protobuf.CountServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -8,12 +9,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.marshalling.MarshallerProvider;
-import io.netty.handler.codec.marshalling.MarshallingDecoder;
-import io.netty.handler.codec.marshalling.MarshallingEncoder;
-
-import io.netty.handler.codec.marshalling.UnmarshallerProvider;
-import org.jboss.marshalling.*;
 
 import java.io.IOException;
 

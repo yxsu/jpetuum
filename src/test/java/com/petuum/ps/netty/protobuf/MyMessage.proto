@@ -1,4 +1,4 @@
-package com.petuum.ps.netty;
+package com.petuum.ps.netty.protobuf;
 
 option java_outer_classname = "AddressBookProtos";
 
