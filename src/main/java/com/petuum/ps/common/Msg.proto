@@ -1,0 +1,109 @@
+package com.petuum.ps.common;
+option java_outer_classname = "Msg";
+
+enum RowType {
+    DENSE_ROW = 0;
+    SPARSE_ROW = 1;
+}
+
+message AppConnectMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message AppThreadDeregMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message BgClockMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message BgCreateTableMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+
+    required int32 tableID = 3;
+    optional RowType rowType = 4[default = DENSE_ROW];
+    optional int32 stalness = 5;
+    optional int32 rowCapacity = 6;
+    optional int32 processCacheCapacity = 7;
+    optional int32 threadCacheCapacity = 8;
+    optional int32 oplogCapacity = 9;
+}
+
+message CreateTableMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+
+    required int32 tableID = 3;
+    optional int32 staleness = 4;
+    optional RowType rowType = 5[default = DENSE_ROW];
+    optional int32 rowCapacity = 6;
+}
+
+message BgSendOpLogMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message ClientConnectMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+    required int32 clientID = 3;
+}
+
+message ClientShutDownMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message ClientStartMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message ConnectServerMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message CreateAllTablesMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message CreateTableReplyMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+
+    required int32 tableID = 3;
+}
+
+message RowRequestMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+
+    required int32 tableID = 3;
+    required int32 rowID = 4;
+    required int32 start = 5;
+    required int32 offset = 6;
+    required int32 clock = 7;
+}
+
+message RowRequestReplyMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message ServerConnectMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
+
+message ServerShutDownAckMsg {
+    required int32 senderID = 1;
+    required int32 receiverID = 2;
+}
